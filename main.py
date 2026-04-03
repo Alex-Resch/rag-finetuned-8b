@@ -8,16 +8,12 @@ from openai.types.chat import ChatCompletionUserMessageParam
 from schemas.qa import QADataset, QAPair
 
 
-def process_folder(folder_path: str) -> list[Document]:
-    all_chunks = []
-
+def process_folder(folder_path: str):
     for file in Path(folder_path).iterdir():
         if file.suffix not in (".pdf", ".txt", ".md"):
             continue
         chunks = seperate_in_chunks(str(file))
-        train_data = generate_train_data(chunks)
-
-    return all_chunks
+        generate_train_data(chunks)
 
 def get_document_loader(path: str):
     if path is None:
@@ -65,8 +61,9 @@ def generate_train_data(chunks: list[Document]):
         )
 
         good_datasets = validate_result(result)
+        generate_json_files(good_datasets)
 
-def validate_result(result: QADataset):
+def validate_result(result: QADataset) -> list[QAPair]:
     good_datasets: list[QAPair] = []
     for pair in result.pairs:
         keep_dataset = input(f"""
@@ -79,6 +76,13 @@ def validate_result(result: QADataset):
         if keep_dataset == "j":
             good_datasets.append(pair)
     return good_datasets
+
+def generate_json_files(pairs: list[QAPair]):
+    output_path = Path("./data/processed/dataset.jsonl")
+
+    with open(output_path, "a") as f:
+        for pair in pairs:
+            f.write(pair.model_dump_json() + "\n")
 
 if __name__ == "__main__":
     process_folder("./data/raw")

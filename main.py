@@ -2,6 +2,10 @@ from pathlib import Path
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredMarkdownLoader
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+import instructor
+from litellm import completion
+from openai.types.chat import ChatCompletionUserMessageParam
+from schemas.qa import QADataset, QAPair
 
 
 def process_folder(folder_path: str) -> list[Document]:
@@ -11,6 +15,7 @@ def process_folder(folder_path: str) -> list[Document]:
         if file.suffix not in (".pdf", ".txt", ".md"):
             continue
         chunks = seperate_in_chunks(str(file))
+        train_data = generate_train_data(chunks)
 
     return all_chunks
 
@@ -33,3 +38,31 @@ def seperate_in_chunks(path: str) -> list[Document]:
         chunk_size=500, chunk_overlap=50
     ).split_documents(pages)
     return chunks
+
+
+def generate_train_data(chunks: list[Document]):
+    client = instructor.from_litellm(completion)
+
+    for chunk in chunks:
+        result = client.chat.completions.create(
+            model="groq/llama-3.1-8b-instant", # later: groq/llama-3.3-70b-versatile
+            response_model=QADataset,
+            messages=[
+                ChatCompletionUserMessageParam(
+                    role="user",
+                    content=f"""
+                        You are a dataset generator for fine-tuning a RAG model.
+                        Generate 3 high-quality question-answer pairs per chunk.
+                        The answer must come ONLY from the chunk content.
+                        Questions should be diverse: factual, conceptual, and applied.
+    
+                        Chunk:
+                        {chunk.page_content}
+                    """
+                )
+            ],
+            temperature=0.7,
+        )
+
+if __name__ == "__main__":
+    process_folder("./data/raw")

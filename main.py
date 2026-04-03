@@ -64,5 +64,21 @@ def generate_train_data(chunks: list[Document]):
             temperature=0.7,
         )
 
+        good_datasets = validate_result(result)
+
+def validate_result(result: QADataset):
+    good_datasets: list[QAPair] = []
+    for pair in result.pairs:
+        keep_dataset = input(f"""
+        context: {pair.context} \n
+        question: {pair.question} \n
+        answer: {pair.answer} \n
+        keep dataset? (j/n)
+        """)
+
+        if keep_dataset == "j":
+            good_datasets.append(pair)
+    return good_datasets
+
 if __name__ == "__main__":
     process_folder("./data/raw")

@@ -11,6 +11,7 @@ dependencies = [
     "langchain-chroma>=1.1.0",
     "langchain-community>=0.4.1",
     "litellm>=1.83.0",
+    "llama-cpp-python>=0.3.20",
     "pypdf>=6.9.2",
     "python-dotenv>=1.2.2",
     "unstructured>=0.21.5",
